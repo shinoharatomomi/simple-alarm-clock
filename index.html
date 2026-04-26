@@ -4,71 +4,158 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Alarm Clock</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@700&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg: #0a0a0f;
-      --surface: #13131a;
-      --border: #1e1e2e;
-      --accent: #7c6af7;
-      --accent-glow: rgba(124, 106, 247, 0.3);
-      --text: #e8e8f0;
-      --muted: #666680;
-      --danger: #f04e6a;
-      --success: #4ef084;
+      --bg1: #05050f;
+      --bg2: #0d0d20;
+      --surface: rgba(255,255,255,0.04);
+      --surface-hover: rgba(255,255,255,0.07);
+      --border: rgba(255,255,255,0.08);
+      --accent: #a78bfa;
+      --accent2: #60a5fa;
+      --accent-glow: rgba(167,139,250,0.35);
+      --text: #f0f0fa;
+      --muted: #6b7280;
+      --danger: #f87171;
+      --danger-glow: rgba(248,113,113,0.4);
+      --success: #34d399;
     }
 
     body {
-      background: var(--bg);
+      background: radial-gradient(ellipse at 30% 20%, #1a0a3a 0%, var(--bg1) 60%),
+                  radial-gradient(ellipse at 70% 80%, #0a1a3a 0%, transparent 60%);
+      background-color: var(--bg1);
       color: var(--text);
-      font-family: 'Courier New', monospace;
+      font-family: 'Inter', sans-serif;
       min-height: 100vh;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 48px;
+      gap: 40px;
       user-select: none;
+      overflow: hidden;
     }
 
-    /* ── 時計 ── */
+    /* ── 背景の光の粒 ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        radial-gradient(1px 1px at 20% 30%, rgba(167,139,250,0.4) 0%, transparent 100%),
+        radial-gradient(1px 1px at 80% 10%, rgba(96,165,250,0.4) 0%, transparent 100%),
+        radial-gradient(1px 1px at 50% 70%, rgba(167,139,250,0.3) 0%, transparent 100%),
+        radial-gradient(1px 1px at 10% 80%, rgba(96,165,250,0.3) 0%, transparent 100%),
+        radial-gradient(1px 1px at 90% 60%, rgba(167,139,250,0.2) 0%, transparent 100%);
+      pointer-events: none;
+    }
+
+    /* ── 時計リングコンテナ ── */
+    .clock-wrap {
+      position: relative;
+      width: clamp(240px, 45vw, 340px);
+      height: clamp(240px, 45vw, 340px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .ring-svg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      transform: rotate(-90deg);
+    }
+
+    .ring-bg {
+      fill: none;
+      stroke: rgba(255,255,255,0.06);
+      stroke-width: 3;
+    }
+
+    .ring-sec {
+      fill: none;
+      stroke: url(#ringGrad);
+      stroke-width: 3;
+      stroke-linecap: round;
+      transition: stroke-dashoffset 0.9s cubic-bezier(0.4,0,0.2,1);
+    }
+
+    .ring-alarm {
+      fill: none;
+      stroke: var(--accent);
+      stroke-width: 2;
+      stroke-linecap: round;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .ring-alarm.visible { opacity: 0.5; }
+
+    /* 時計テキスト */
+    .clock-inner {
+      position: relative;
+      text-align: center;
+      z-index: 1;
+    }
+
     #clock {
-      font-size: clamp(64px, 15vw, 128px);
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: clamp(42px, 9vw, 72px);
       font-weight: 700;
-      letter-spacing: 0.05em;
-      color: var(--text);
-      text-shadow: 0 0 60px var(--accent-glow);
-      transition: color 0.3s;
+      letter-spacing: 0.04em;
+      background: linear-gradient(135deg, var(--text) 30%, var(--accent) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      transition: filter 0.3s;
     }
 
     #clock.firing {
-      color: var(--accent);
-      animation: pulse 0.6s ease-in-out infinite alternate;
+      animation: clock-pulse 0.5s ease-in-out infinite alternate;
+      filter: drop-shadow(0 0 16px var(--accent));
     }
 
-    @keyframes pulse {
-      from { text-shadow: 0 0 20px var(--accent-glow); }
-      to   { text-shadow: 0 0 80px var(--accent), 0 0 120px var(--accent-glow); }
+    @keyframes clock-pulse {
+      from { filter: drop-shadow(0 0 8px var(--accent)); }
+      to   { filter: drop-shadow(0 0 32px var(--accent)); }
+    }
+
+    #date-line {
+      font-size: 12px;
+      color: var(--muted);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-top: 4px;
     }
 
     /* ── カード ── */
     .card {
       background: var(--surface);
       border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 32px 40px;
-      width: min(380px, 90vw);
+      border-radius: 24px;
+      padding: 28px 32px;
+      width: min(360px, 90vw);
       display: flex;
       flex-direction: column;
-      gap: 24px;
+      gap: 20px;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      box-shadow: 0 8px 40px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.07);
     }
 
     .card-label {
-      font-size: 11px;
-      letter-spacing: 0.15em;
+      font-size: 10px;
+      letter-spacing: 0.2em;
       text-transform: uppercase;
       color: var(--muted);
+      font-weight: 500;
     }
 
     /* ── 時刻インプット ── */
@@ -80,142 +167,242 @@
 
     #alarm-time {
       flex: 1;
-      background: var(--bg);
+      background: rgba(0,0,0,0.3);
       border: 1px solid var(--border);
-      border-radius: 8px;
+      border-radius: 12px;
       color: var(--text);
-      font-family: inherit;
-      font-size: 24px;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 22px;
+      font-weight: 700;
       padding: 12px 16px;
       outline: none;
-      transition: border-color 0.2s;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      letter-spacing: 0.05em;
     }
 
-    #alarm-time:focus { border-color: var(--accent); }
+    #alarm-time:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(167,139,250,0.15);
+    }
 
     /* ── ボタン ── */
     .btn {
       border: none;
-      border-radius: 8px;
+      border-radius: 12px;
       cursor: pointer;
-      font-family: inherit;
+      font-family: 'Inter', sans-serif;
       font-size: 13px;
       font-weight: 600;
-      letter-spacing: 0.08em;
-      padding: 12px 20px;
-      transition: transform 0.1s, opacity 0.2s, box-shadow 0.2s;
+      letter-spacing: 0.06em;
+      padding: 12px 22px;
+      transition: transform 0.1s, box-shadow 0.2s, background 0.2s;
       text-transform: uppercase;
+      white-space: nowrap;
     }
 
-    .btn:active { transform: scale(0.96); }
+    .btn:active { transform: scale(0.94); }
 
     .btn-primary {
-      background: var(--accent);
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
       color: #fff;
-      box-shadow: 0 0 0 transparent;
+      box-shadow: 0 4px 16px rgba(167,139,250,0.3);
     }
 
-    .btn-primary:hover { box-shadow: 0 0 20px var(--accent-glow); }
+    .btn-primary:hover {
+      box-shadow: 0 4px 28px rgba(167,139,250,0.5);
+      transform: translateY(-1px);
+    }
 
     .btn-primary.active {
-      background: var(--border);
+      background: rgba(255,255,255,0.06);
       color: var(--muted);
+      box-shadow: none;
     }
+
+    .btn-primary.active:hover { transform: none; box-shadow: none; }
 
     .btn-stop {
       width: 100%;
       padding: 16px;
-      background: var(--danger);
+      background: linear-gradient(135deg, #f87171, #fb923c);
       color: #fff;
       font-size: 15px;
-      border-radius: 12px;
-      animation: blink-btn 0.8s ease-in-out infinite alternate;
+      border-radius: 16px;
+      letter-spacing: 0.12em;
+      animation: danger-pulse 0.9s ease-in-out infinite alternate;
     }
 
-    @keyframes blink-btn {
-      from { box-shadow: 0 0 0 transparent; }
-      to   { box-shadow: 0 0 30px rgba(240, 78, 106, 0.5); }
+    @keyframes danger-pulse {
+      from { box-shadow: 0 4px 16px var(--danger-glow); }
+      to   { box-shadow: 0 4px 40px var(--danger-glow), 0 0 60px rgba(248,113,113,0.2); }
     }
 
-    /* ── ステータス ── */
+    /* ── ステータスバッジ ── */
     #status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
       font-size: 13px;
       color: var(--muted);
-      min-height: 18px;
-      transition: color 0.3s;
+      min-height: 20px;
     }
 
-    #status.on { color: var(--success); }
-    #status.firing { color: var(--danger); }
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--muted);
+      flex-shrink: 0;
+      transition: background 0.3s;
+    }
+
+    #status.on .status-dot  { background: var(--success); box-shadow: 0 0 6px var(--success); }
+    #status.on              { color: var(--success); }
+    #status.firing .status-dot { background: var(--danger); animation: dot-blink 0.4s infinite alternate; }
+    #status.firing          { color: var(--danger); }
+
+    @keyframes dot-blink {
+      from { opacity: 1; }
+      to   { opacity: 0.2; }
+    }
 
     /* ── 発火オーバーレイ ── */
     #overlay {
       display: none;
       position: fixed;
       inset: 0;
-      background: rgba(10, 10, 15, 0.92);
+      background: radial-gradient(ellipse at center, rgba(30,10,60,0.97) 0%, rgba(5,5,15,0.98) 100%);
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 32px;
+      gap: 28px;
       z-index: 100;
-      backdrop-filter: blur(8px);
+      backdrop-filter: blur(12px);
     }
 
     #overlay.show { display: flex; }
 
+    .overlay-ring {
+      position: relative;
+      width: 180px;
+      height: 180px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .overlay-ring::before {
+      content: '';
+      position: absolute;
+      inset: -20px;
+      border-radius: 50%;
+      border: 2px solid var(--accent);
+      opacity: 0.3;
+      animation: ring-expand 1.2s ease-out infinite;
+    }
+
+    .overlay-ring::after {
+      content: '';
+      position: absolute;
+      inset: -40px;
+      border-radius: 50%;
+      border: 1px solid var(--accent);
+      opacity: 0.15;
+      animation: ring-expand 1.2s ease-out 0.4s infinite;
+    }
+
+    @keyframes ring-expand {
+      0%   { transform: scale(0.8); opacity: 0.4; }
+      100% { transform: scale(1.2); opacity: 0; }
+    }
+
     #overlay-icon {
-      font-size: 96px;
-      animation: shake 0.4s ease-in-out infinite;
+      font-size: 80px;
+      animation: shake 0.35s ease-in-out infinite;
+      filter: drop-shadow(0 0 20px rgba(167,139,250,0.6));
     }
 
     @keyframes shake {
-      0%, 100% { transform: rotate(-8deg); }
-      50%       { transform: rotate(8deg); }
+      0%, 100% { transform: rotate(-10deg) scale(1); }
+      50%       { transform: rotate(10deg) scale(1.05); }
     }
 
     #overlay-time {
-      font-size: 48px;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 56px;
       font-weight: 700;
-      color: var(--accent);
+      background: linear-gradient(135deg, var(--text), var(--accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: 0.06em;
     }
 
     #overlay-label {
-      font-size: 16px;
+      font-size: 11px;
       color: var(--muted);
-      letter-spacing: 0.1em;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
     }
   </style>
 </head>
 <body>
 
-  <div id="clock">00:00:00</div>
+  <!-- 時計 + リング -->
+  <div class="clock-wrap">
+    <svg class="ring-svg" viewBox="0 0 340 340">
+      <defs>
+        <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#a78bfa"/>
+          <stop offset="100%" stop-color="#60a5fa"/>
+        </linearGradient>
+      </defs>
+      <circle class="ring-bg"    cx="170" cy="170" r="158"/>
+      <circle class="ring-alarm" cx="170" cy="170" r="158" id="ring-alarm"
+              stroke-dasharray="992" stroke-dashoffset="992"/>
+      <circle class="ring-sec"   cx="170" cy="170" r="158" id="ring-sec"
+              stroke-dasharray="992" stroke-dashoffset="992"/>
+    </svg>
+    <div class="clock-inner">
+      <div id="clock">00:00:00</div>
+      <div id="date-line">— — —</div>
+    </div>
+  </div>
 
+  <!-- コントロールカード -->
   <div class="card">
     <span class="card-label">Set Alarm</span>
-
     <div class="time-row">
       <input id="alarm-time" type="time" value="07:00">
       <button class="btn btn-primary" id="toggle-btn" onclick="toggleAlarm()">Set</button>
     </div>
-
-    <div id="status">—</div>
+    <div id="status">
+      <span class="status-dot"></span>
+      <span id="status-text">No alarm set</span>
+    </div>
   </div>
 
   <!-- 発火オーバーレイ -->
   <div id="overlay">
-    <div id="overlay-icon">⏰</div>
+    <div class="overlay-ring">
+      <div id="overlay-icon">⏰</div>
+    </div>
     <div id="overlay-time"></div>
-    <div id="overlay-label">ALARM</div>
-    <button class="btn btn-stop" onclick="dismiss()">STOP</button>
+    <div id="overlay-label">Wake up!</div>
+    <button class="btn btn-stop" onclick="dismiss()">Stop Alarm</button>
   </div>
 
 <script>
+  const CIRCUMFERENCE = 2 * Math.PI * 158;
+
   let alarmOn = false;
   let alarmTime = '';
   let audioCtx = null;
   let beepInterval = null;
   let firing = false;
+
+  const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
   function getAudioCtx() {
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -224,21 +411,26 @@
 
   function beep() {
     const ctx = getAudioCtx();
-    const freqs = [880, 1100, 880];
+    const pattern = [880, 1100, 880, 1320];
     let t = ctx.currentTime;
-    freqs.forEach(freq => {
+    pattern.forEach(freq => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.connect(gain);
       gain.connect(ctx.destination);
       osc.frequency.value = freq;
       osc.type = 'sine';
-      gain.gain.setValueAtTime(0.4, t);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
+      gain.gain.setValueAtTime(0.35, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
       osc.start(t);
-      osc.stop(t + 0.25);
-      t += 0.3;
+      osc.stop(t + 0.22);
+      t += 0.28;
     });
+  }
+
+  function setRingOffset(id, fraction) {
+    const el = document.getElementById(id);
+    el.style.strokeDashoffset = CIRCUMFERENCE * (1 - fraction);
   }
 
   function tick() {
@@ -246,25 +438,36 @@
     const hh = String(now.getHours()).padStart(2, '0');
     const mm = String(now.getMinutes()).padStart(2, '0');
     const ss = String(now.getSeconds()).padStart(2, '0');
+
     document.getElementById('clock').textContent = `${hh}:${mm}:${ss}`;
+    document.getElementById('date-line').textContent =
+      `${DAYS[now.getDay()]}  ${now.getDate()} ${MONTHS[now.getMonth()]}  ${now.getFullYear()}`;
+
+    // 秒リング
+    setRingOffset('ring-sec', now.getSeconds() / 60);
+
+    // アラームリングのマーカー位置
+    if (alarmOn && alarmTime) {
+      const [ah, am] = alarmTime.split(':').map(Number);
+      const alarmFrac = ((ah % 12) * 60 + am) / (12 * 60);
+      setRingOffset('ring-alarm', alarmFrac);
+    }
 
     if (alarmOn && !firing) {
-      const nowHHMM = `${hh}:${mm}`;
-      if (nowHHMM === alarmTime && ss === '00') fire();
+      if (`${hh}:${mm}` === alarmTime && ss === '00') fire();
     }
   }
 
   function fire() {
     firing = true;
     alarmOn = false;
-
     document.getElementById('clock').classList.add('firing');
     document.getElementById('overlay-time').textContent = alarmTime;
     document.getElementById('overlay').classList.add('show');
+    document.getElementById('ring-alarm').classList.remove('visible');
     updateStatus();
-
     beep();
-    beepInterval = setInterval(beep, 1500);
+    beepInterval = setInterval(beep, 1600);
   }
 
   function dismiss() {
@@ -279,16 +482,18 @@
 
   function toggleAlarm() {
     if (firing) { dismiss(); return; }
-
     alarmOn = !alarmOn;
     alarmTime = document.getElementById('alarm-time').value;
 
     const btn = document.getElementById('toggle-btn');
+    const ring = document.getElementById('ring-alarm');
     if (alarmOn) {
       btn.textContent = 'Cancel';
       btn.classList.add('active');
+      ring.classList.add('visible');
     } else {
       resetBtn();
+      ring.classList.remove('visible');
     }
     updateStatus();
   }
@@ -301,14 +506,15 @@
 
   function updateStatus() {
     const el = document.getElementById('status');
+    const txt = document.getElementById('status-text');
     if (firing) {
-      el.textContent = '🔔 Alarm firing!';
+      txt.textContent = 'Alarm is ringing!';
       el.className = 'firing';
     } else if (alarmOn) {
-      el.textContent = `✓ Alarm set for ${alarmTime}`;
+      txt.textContent = `Alarm set for ${alarmTime}`;
       el.className = 'on';
     } else {
-      el.textContent = '—';
+      txt.textContent = 'No alarm set';
       el.className = '';
     }
   }
