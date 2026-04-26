@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Alarm Clock</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0f;
+      --surface: #13131a;
+      --border: #1e1e2e;
+      --accent: #7c6af7;
+      --accent-glow: rgba(124, 106, 247, 0.3);
+      --text: #e8e8f0;
+      --muted: #666680;
+      --danger: #f04e6a;
+      --success: #4ef084;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Courier New', monospace;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 48px;
+      user-select: none;
+    }
+
+    /* ── 時計 ── */
+    #clock {
+      font-size: clamp(64px, 15vw, 128px);
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      color: var(--text);
+      text-shadow: 0 0 60px var(--accent-glow);
+      transition: color 0.3s;
+    }
+
+    #clock.firing {
+      color: var(--accent);
+      animation: pulse 0.6s ease-in-out infinite alternate;
+    }
+
+    @keyframes pulse {
+      from { text-shadow: 0 0 20px var(--accent-glow); }
+      to   { text-shadow: 0 0 80px var(--accent), 0 0 120px var(--accent-glow); }
+    }
+
+    /* ── カード ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 32px 40px;
+      width: min(380px, 90vw);
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .card-label {
+      font-size: 11px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    /* ── 時刻インプット ── */
+    .time-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    #alarm-time {
+      flex: 1;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 24px;
+      padding: 12px 16px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    #alarm-time:focus { border-color: var(--accent); }
+
+    /* ── ボタン ── */
+    .btn {
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      padding: 12px 20px;
+      transition: transform 0.1s, opacity 0.2s, box-shadow 0.2s;
+      text-transform: uppercase;
+    }
+
+    .btn:active { transform: scale(0.96); }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+      box-shadow: 0 0 0 transparent;
+    }
+
+    .btn-primary:hover { box-shadow: 0 0 20px var(--accent-glow); }
+
+    .btn-primary.active {
+      background: var(--border);
+      color: var(--muted);
+    }
+
+    .btn-stop {
+      width: 100%;
+      padding: 16px;
+      background: var(--danger);
+      color: #fff;
+      font-size: 15px;
+      border-radius: 12px;
+      animation: blink-btn 0.8s ease-in-out infinite alternate;
+    }
+
+    @keyframes blink-btn {
+      from { box-shadow: 0 0 0 transparent; }
+      to   { box-shadow: 0 0 30px rgba(240, 78, 106, 0.5); }
+    }
+
+    /* ── ステータス ── */
+    #status {
+      font-size: 13px;
+      color: var(--muted);
+      min-height: 18px;
+      transition: color 0.3s;
+    }
+
+    #status.on { color: var(--success); }
+    #status.firing { color: var(--danger); }
+
+    /* ── 発火オーバーレイ ── */
+    #overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(10, 10, 15, 0.92);
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 32px;
+      z-index: 100;
+      backdrop-filter: blur(8px);
+    }
+
+    #overlay.show { display: flex; }
+
+    #overlay-icon {
+      font-size: 96px;
+      animation: shake 0.4s ease-in-out infinite;
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: rotate(-8deg); }
+      50%       { transform: rotate(8deg); }
+    }
+
+    #overlay-time {
+      font-size: 48px;
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    #overlay-label {
+      font-size: 16px;
+      color: var(--muted);
+      letter-spacing: 0.1em;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="clock">00:00:00</div>
+
+  <div class="card">
+    <span class="card-label">Set Alarm</span>
+
+    <div class="time-row">
+      <input id="alarm-time" type="time" value="07:00">
+      <button class="btn btn-primary" id="toggle-btn" onclick="toggleAlarm()">Set</button>
+    </div>
+
+    <div id="status">—</div>
+  </div>
+
+  <!-- 発火オーバーレイ -->
+  <div id="overlay">
+    <div id="overlay-icon">⏰</div>
+    <div id="overlay-time"></div>
+    <div id="overlay-label">ALARM</div>
+    <button class="btn btn-stop" onclick="dismiss()">STOP</button>
+  </div>
+
+<script>
+  let alarmOn = false;
+  let alarmTime = '';
+  let audioCtx = null;
+  let beepInterval = null;
+  let firing = false;
+
+  function getAudioCtx() {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    return audioCtx;
+  }
+
+  function beep() {
+    const ctx = getAudioCtx();
+    const freqs = [880, 1100, 880];
+    let t = ctx.currentTime;
+    freqs.forEach(freq => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.value = freq;
+      osc.type = 'sine';
+      gain.gain.setValueAtTime(0.4, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
+      osc.start(t);
+      osc.stop(t + 0.25);
+      t += 0.3;
+    });
+  }
+
+  function tick() {
+    const now = new Date();
+    const hh = String(now.getHours()).padStart(2, '0');
+    const mm = String(now.getMinutes()).padStart(2, '0');
+    const ss = String(now.getSeconds()).padStart(2, '0');
+    document.getElementById('clock').textContent = `${hh}:${mm}:${ss}`;
+
+    if (alarmOn && !firing) {
+      const nowHHMM = `${hh}:${mm}`;
+      if (nowHHMM === alarmTime && ss === '00') fire();
+    }
+  }
+
+  function fire() {
+    firing = true;
+    alarmOn = false;
+
+    document.getElementById('clock').classList.add('firing');
+    document.getElementById('overlay-time').textContent = alarmTime;
+    document.getElementById('overlay').classList.add('show');
+    updateStatus();
+
+    beep();
+    beepInterval = setInterval(beep, 1500);
+  }
+
+  function dismiss() {
+    firing = false;
+    clearInterval(beepInterval);
+    beepInterval = null;
+    document.getElementById('overlay').classList.remove('show');
+    document.getElementById('clock').classList.remove('firing');
+    resetBtn();
+    updateStatus();
+  }
+
+  function toggleAlarm() {
+    if (firing) { dismiss(); return; }
+
+    alarmOn = !alarmOn;
+    alarmTime = document.getElementById('alarm-time').value;
+
+    const btn = document.getElementById('toggle-btn');
+    if (alarmOn) {
+      btn.textContent = 'Cancel';
+      btn.classList.add('active');
+    } else {
+      resetBtn();
+    }
+    updateStatus();
+  }
+
+  function resetBtn() {
+    const btn = document.getElementById('toggle-btn');
+    btn.textContent = 'Set';
+    btn.classList.remove('active');
+  }
+
+  function updateStatus() {
+    const el = document.getElementById('status');
+    if (firing) {
+      el.textContent = '🔔 Alarm firing!';
+      el.className = 'firing';
+    } else if (alarmOn) {
+      el.textContent = `✓ Alarm set for ${alarmTime}`;
+      el.className = 'on';
+    } else {
+      el.textContent = '—';
+      el.className = '';
+    }
+  }
+
+  setInterval(tick, 1000);
+  tick();
+</script>
+</body>
+</html>
